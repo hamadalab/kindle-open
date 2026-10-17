@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Kindle で開く</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; margin: 3rem auto; max-width: 36rem; padding: 0 1rem; color: #222; }
+  a.btn { display: inline-block; padding: .6rem 1.2rem; border-radius: .5rem; background: #ff9900; color: #111; text-decoration: none; font-weight: 600; }
+  code { background: #f2f2f2; padding: .1rem .3rem; border-radius: .25rem; }
+  .muted { color: #666; font-size: .9rem; }
+</style>
+</head>
+<body>
+<h1>Kindle で開く</h1>
+<p id="msg">Kindle アプリを開いています…</p>
+<p><a id="link" class="btn" href="#">開かない場合はここをクリック</a></p>
+<p class="muted">このページは URL の <code>asin</code> を <code>kindle://book?action=open&amp;asin=…</code> に転送するだけです。蔵書情報は保持・記録しません。</p>
+<script>
+(function () {
+  var asin = new URLSearchParams(location.search).get('asin') || '';
+  var msg = document.getElementById('msg'), link = document.getElementById('link');
+  if (!/^[A-Za-z0-9]{10}$/.test(asin)) {
+    msg.textContent = 'asin パラメータがありません。例: ?asin=B0GX2YJ637';
+    link.style.display = 'none';
+    return;
+  }
+  var target = 'kindle://book?action=open&asin=' + asin.toUpperCase();
+  link.href = target;
+  msg.textContent = 'Kindle アプリで ' + asin.toUpperCase() + ' を開いています…';
+  location.replace(target);
+  setTimeout(function () {
+    msg.textContent = 'Kindle が開かない場合は下のボタンを押してください。初回はブラウザの「Amazon Kindle を開きますか」で許可が必要です。';
+  }, 1500);
+})();
+</script>
+</body>
+</html>
