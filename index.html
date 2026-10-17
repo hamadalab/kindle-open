@@ -6,33 +6,63 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Kindle で開く</title>
 <style>
-  body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; margin: 3rem auto; max-width: 36rem; padding: 0 1rem; color: #222; }
-  a.btn { display: inline-block; padding: .6rem 1.2rem; border-radius: .5rem; background: #ff9900; color: #111; text-decoration: none; font-weight: 600; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; margin: 2.5rem auto; max-width: 36rem; padding: 0 1rem; color: #222; line-height: 1.6; }
+  h1 { font-size: 1.3rem; }
+  .btns { display: flex; flex-direction: column; gap: .6rem; margin: 1.2rem 0; }
+  a.btn { display: block; padding: .7rem 1.2rem; border-radius: .5rem; background: #eee; color: #111; text-decoration: none; font-weight: 600; text-align: center; }
+  a.btn.primary { background: #ff9900; }
   code { background: #f2f2f2; padding: .1rem .3rem; border-radius: .25rem; }
-  .muted { color: #666; font-size: .9rem; }
+  .muted { color: #666; font-size: .85rem; }
 </style>
 </head>
 <body>
 <h1>Kindle で開く</h1>
-<p id="msg">Kindle アプリを開いています…</p>
-<p><a id="link" class="btn" href="#">開かない場合はここをクリック</a></p>
-<p class="muted">このページは URL の <code>asin</code> を <code>kindle://book?action=open&amp;asin=…</code> に転送するだけです。蔵書情報は保持・記録しません。</p>
+<p id="msg">読み込み中…</p>
+<div class="btns" id="btns" hidden>
+  <a id="web" class="btn" href="#">🌐 Cloud Reader（ブラウザ）で読む</a>
+  <a id="app" class="btn" href="#">📱 Kindle アプリで開く</a>
+  <a id="amz" class="btn" href="#">🛒 Amazon の商品ページ</a>
+</div>
+<p class="muted">このページは URL の <code>asin</code> から Kindle のリンクを組み立てて転送するだけです。蔵書情報は保持・記録しません。
+<code>manual=1</code> を付けると自動転送せずボタンだけ表示します。</p>
 <script>
 (function () {
-  var asin = new URLSearchParams(location.search).get('asin') || '';
-  var msg = document.getElementById('msg'), link = document.getElementById('link');
-  if (!/^[A-Za-z0-9]{10}$/.test(asin)) {
+  var q = new URLSearchParams(location.search);
+  var asin = (q.get('asin') || '').trim().toUpperCase();
+  var manual = q.get('manual') === '1';
+  var msg = document.getElementById('msg'), btns = document.getElementById('btns');
+  if (!/^[A-Z0-9]{10}$/.test(asin)) {
     msg.textContent = 'asin パラメータがありません。例: ?asin=B0GX2YJ637';
-    link.style.display = 'none';
     return;
   }
-  var target = 'kindle://book?action=open&asin=' + asin.toUpperCase();
-  link.href = target;
-  msg.textContent = 'Kindle アプリで ' + asin.toUpperCase() + ' を開いています…';
-  location.replace(target);
-  setTimeout(function () {
-    msg.textContent = 'Kindle が開かない場合は下のボタンを押してください。初回はブラウザの「Amazon Kindle を開きますか」で許可が必要です。';
-  }, 1500);
+  var webURL = 'https://read.amazon.co.jp/?asin=' + asin;                  // Kindle Cloud Reader
+  var appURL = 'kindle://book?action=open&asin=' + asin;                   // iOS/iPadOS の Kindle アプリ
+  var amzURL = 'https://www.amazon.co.jp/dp/' + asin;
+  document.getElementById('web').href = webURL;
+  document.getElementById('app').href = appURL;
+  document.getElementById('amz').href = amzURL;
+
+  // プラットフォーム判定: iPadOS は Mac を名乗るので maxTouchPoints で見分ける
+  var n = navigator, ua = n.userAgent || '';
+  var plat = (n.userAgentData && n.userAgentData.platform) || n.platform || '';
+  var macLike = /Mac/i.test(plat) || /Macintosh/.test(ua);
+  var ios = /iPhone|iPad|iPod/.test(ua) || (macLike && n.maxTouchPoints > 1);
+  var mac = macLike && !ios;
+
+  btns.hidden = false;
+  if (ios) {
+    document.getElementById('app').classList.add('primary');
+    msg.textContent = manual ? 'ASIN ' + asin + '。開き方を選んでください。' : 'Kindle アプリで ' + asin + ' を開いています…（開かない場合は下のボタン）';
+    if (!manual) location.replace(appURL);
+  } else if (mac) {
+    document.getElementById('web').classList.add('primary');
+    msg.textContent = manual ? 'ASIN ' + asin + '。開き方を選んでください。' : 'Cloud Reader（ブラウザ）で ' + asin + ' を開いています…';
+    // Mac 版 Kindle アプリ (7.x) はリンクで本を開けない（起動のみ）ため、ブラウザ版で開く
+    if (!manual) location.replace(webURL);
+  } else {
+    document.getElementById('web').classList.add('primary');
+    msg.textContent = 'ASIN ' + asin + '。開き方を選んでください。';
+  }
 })();
 </script>
 </body>
